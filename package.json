@@ -1,0 +1,19 @@
+{
+  "name": "express-gateway-plugin-access-controller",
+  "version": "0.0.1",
+  "description": "Plugin Access Controller for Express Gateway",
+  "main": "manifest.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xavier-rodet/express-gateway-plugin-access-controller.git"
+  },
+  "keywords": [
+    "access-controller"
+  ],
+  "author": "Xavier RODET",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/xavier-rodet/express-gateway-plugin-access-controller/issues"
+  },
+  "homepage": "https://github.com/xavier-rodet/express-gateway-plugin-access-controller#readme"
+}

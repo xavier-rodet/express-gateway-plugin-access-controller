@@ -1,0 +1,26 @@
+
+name: ci-workflow
+on:
+  push:
+    branches:
+      - master # Change this to your default branch
+jobs:
+  npm-publish:
+    name: npm-publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@master
+      - name: Set up Node.js
+        uses: actions/setup-node@master
+        with:
+          node-version: 10.0.0
+      - name: Publish to npm
+        uses: pascalgn/npm-publish-action@1.1.0
+        with: # All of theses inputs are optional
+          commit_pattern: "^Release (\\S+)" # The pattern that matches version update commits.
+          tag_name: "v%s" # The name of the tag that you want to create for the version.
+          tag_message: "v%s" # The message of the tag that you want to create for the version.
+        env: # More info about the environment variables in the README
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Leave this as is, it's automatically generated
+          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }} # You need to set this in your repo settings
