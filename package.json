@@ -1,6 +1,6 @@
 {
   "name": "express-gateway-plugin-access-controller",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Plugin Access Controller for Express Gateway",
   "main": "manifest.js",
   "repository": {

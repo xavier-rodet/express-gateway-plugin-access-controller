@@ -60,7 +60,7 @@ policies:
               filtersRejection: # [OPTIONNAL]
                 - filter: 'Account'
                   exceptOwner: true # [OPTIONNAL] reject this filter excepted for owner
-            - resource: '/api/users/{\d+}/friends' # we can use standard regex pattern inside "{}"
+            - resource: '/api/users/{\d+}/contacts' # we can use standard regex pattern inside "{}"
               methods:
                 - method: 'GET'
               filtersRejection: # [OPTIONNAL]
