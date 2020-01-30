@@ -47,13 +47,13 @@ policies:
           # Last but not least, we list our allowed resources, where we can plug our desired rejected filters rules set above
           allowedResources: # [REQUIRED]
             - resource: '/api/users'
-              methods:
+              methods: # [REQUIRED]
                 - method: 'GET'
               filtersRejection: # [OPTIONNAL]
                 - filter: 'Account'
                 - filter: 'FieldExist'
             - resource: '/api/users/{owner:\d+}' # we can catch required owner using "{owner:x}", where x is a standard regex pattern
-              methods:
+              methods: # [REQUIRED]
                 - method: 'GET'
                 - method: 'PUT'
                   requireOwner: true # [OPTIONNAL] Only owner is allowed to use this method
@@ -61,7 +61,7 @@ policies:
                 - filter: 'Account'
                   exceptOwner: true # [OPTIONNAL] reject this filter excepted for owner
             - resource: '/api/users/{\d+}/contacts' # we can use standard regex pattern inside "{}"
-              methods:
+              methods: # [REQUIRED]
                 - method: 'GET'
               filtersRejection: # [OPTIONNAL]
                 - filter: 'Account'

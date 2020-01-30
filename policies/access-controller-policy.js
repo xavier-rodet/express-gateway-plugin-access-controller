@@ -1,28 +1,34 @@
 // Check if filter match with express.req.query
 function isFilterMatchQuery(filter, requestQuery) {
-
   let isKeyMatching = false;
   let isValueMatching = false;
 
   // If we detect nested filters
   const matches = filter.key.match(/(.*)\[(.*)\]$/);
-  if(matches) {
-      if(matches[2] === '') { // groups[]=mm -> groups: ['mm']
-        isKeyMatching = (matches[1] in requestQuery);
-        if(isKeyMatching) isValueMatching = (requestQuery[matches[1]].indexOf(filter.value) >= 0);
-      } else { // mmTokens[exists]=1 -> mmToken: {exists: '1'}
-        isKeyMatching = (matches[1] in requestQuery && matches[2] in requestQuery[matches[1]]);
-        if(isKeyMatching) isValueMatching = (requestQuery[matches[1]][matches[2]] === filter.value);
-      }
-  } else { // key=value
-    isKeyMatching = (filter.key in requestQuery);
-    if(isKeyMatching) isValueMatching = (requestQuery[filter.key] === filter.value);
+  if (matches) {
+    if (matches[2] === '') {
+      // groups[]=mm -> groups: ['mm']
+      isKeyMatching = matches[1] in requestQuery;
+      if (isKeyMatching)
+        isValueMatching = requestQuery[matches[1]].indexOf(filter.value) >= 0;
+    } else {
+      // mmTokens[exists]=1 -> mmToken: {exists: '1'}
+      isKeyMatching =
+        matches[1] in requestQuery && matches[2] in requestQuery[matches[1]];
+      if (isKeyMatching)
+        isValueMatching = requestQuery[matches[1]][matches[2]] === filter.value;
+    }
+  } else {
+    // key=value
+    isKeyMatching = filter.key in requestQuery;
+    if (isKeyMatching)
+      isValueMatching = requestQuery[filter.key] === filter.value;
   }
 
-  if(filter.value === undefined) {
+  if (filter.value === undefined) {
     return isKeyMatching;
   } else {
-    return (isKeyMatching && isValueMatching);
+    return isKeyMatching && isValueMatching;
   }
 }
 
@@ -30,17 +36,13 @@ function mergeFiltersIntoResources(allowedResources, rejectedFilters) {
   return allowedResources.map(allowedResource => {
     allowedResource.filtersRejection = allowedResource.filtersRejection.map(
       resourceFilter => {
-
         // Get rejected filter configuration
         let rejectedFilter = rejectedFilters.find(
-            rejectedFilter => rejectedFilter.filter === resourceFilter.filter
+          rejectedFilter => rejectedFilter.filter === resourceFilter.filter
         );
 
         // Merge it to resource
-        return Object.assign(
-          resourceFilter,
-          rejectedFilter
-        );
+        return Object.assign(resourceFilter, rejectedFilter);
       }
     );
     return allowedResource;
@@ -66,33 +68,30 @@ function analyzeResourceURI(resource) {
   return [pattern, ownerMatch ? true : false];
 }
 
-function validateRequestMethod(requestMethod, allowedResource, owner, user) {
-  return allowedResource.methods.some(
+function validateRequestMethod(requestMethod, allowedMethods, owner, user) {
+  return allowedMethods.some(
     method =>
       method.method === requestMethod &&
       (!method.requireOwner || (owner && owner === user))
   );
 }
 
-function validateRequestFilters(requestQuery, allowedResource, owner, user) {
-  const hasRejectedFilter = allowedResource.filtersRejection.some(
-    rejectedFilter => {
-      if (isFilterMatchQuery(rejectedFilter, requestQuery)) {
-
-        // We will detect rejected filter:
-        // If it doesn't accept owner
-        // Or Owner is not found
-        // Or it's not the Owner
-        if (!rejectedFilter.exceptOwner || !owner || owner !== user) {
-          return true;
-        } else {
-          return false;
-        }
+function validateRequestFilters(requestQuery, rejectedFilters, owner, user) {
+  const hasRejectedFilter = rejectedFilters.some(rejectedFilter => {
+    if (isFilterMatchQuery(rejectedFilter, requestQuery)) {
+      // We will detect rejected filter:
+      // If it doesn't accept owner
+      // Or Owner is not found
+      // Or it's not the Owner
+      if (!rejectedFilter.exceptOwner || !owner || owner !== user) {
+        return true;
       } else {
         return false;
       }
+    } else {
+      return false;
     }
-  );
+  });
 
   return !hasRejectedFilter; // Return true if no rejected filters has been found
 }
@@ -108,8 +107,19 @@ function validateRequest(request, allowedResources, user) {
       const owner = matches[1] ? matches[1].toString() : undefined;
 
       return (
-        validateRequestMethod(request.method, allowedResource, owner, user) &&
-        validateRequestFilters(request.query, allowedResource, owner, user)
+        validateRequestMethod(
+          request.method,
+          allowedResource.methods,
+          owner,
+          user
+        ) &&
+        (!allowedResource.filtersRejection ||
+          validateRequestFilters(
+            request.query,
+            allowedResource.filtersRejection,
+            owner,
+            user
+          ))
       );
     } else {
       return false;
