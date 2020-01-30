@@ -1,12 +1,45 @@
+// Check if filter match with express.req.query
+function isFilterMatchQuery(filter, requestQuery) {
+
+  let isKeyMatching = false;
+  let isValueMatching = false;
+
+  // If we detect nested filters
+  const matches = filter.key.match(/(.*)\[(.*)\]$/);
+  if(matches) {
+      if(matches[2] === '') { // groups[]=mm -> groups: ['mm']
+        isKeyMatching = (matches[1] in requestQuery);
+        if(isKeyMatching) isValueMatching = (requestQuery[matches[1]].indexOf(filter.value) >= 0);
+      } else { // mmTokens[exists]=1 -> mmToken: {exists: '1'}
+        isKeyMatching = (matches[1] in requestQuery && matches[2] in requestQuery[matches[1]]);
+        if(isKeyMatching) isValueMatching = (requestQuery[matches[1]][matches[2]] === filter.value);
+      }
+  } else { // key=value
+    isKeyMatching = (filter.key in requestQuery);
+    if(isKeyMatching) isValueMatching = (requestQuery[filter.key] === filter.value);
+  }
+
+  if(filter.value === undefined) {
+    return isKeyMatching;
+  } else {
+    return (isKeyMatching && isValueMatching);
+  }
+}
+
 function mergeFiltersIntoResources(allowedResources, rejectedFilters) {
   return allowedResources.map(allowedResource => {
     allowedResource.filtersRejection = allowedResource.filtersRejection.map(
-      filterRejection => {
+      resourceFilter => {
+
+        // Get rejected filter configuration
+        let rejectedFilter = rejectedFilters.find(
+            rejectedFilter => rejectedFilter.filter === resourceFilter.filter
+        );
+
+        // Merge it to resource
         return Object.assign(
-          filterRejection,
-          rejectedFilters.find(
-            rejectedFilter => rejectedFilter.filter === filterRejection.filter
-          )
+          resourceFilter,
+          rejectedFilter
         );
       }
     );
@@ -44,20 +77,7 @@ function validateRequestMethod(requestMethod, allowedResource, owner, user) {
 function validateRequestFilters(requestQuery, allowedResource, owner, user) {
   const hasRejectedFilter = allowedResource.filtersRejection.some(
     rejectedFilter => {
-      console.log('checking rejectedFilter', rejectedFilter);
-      if (
-        // If we found a rejected filter in current query
-        rejectedFilter.name in requestQuery &&
-        // If rejected filter has no value to check
-        (rejectedFilter.value === undefined ||
-          // Or check Array value
-          (Array.isArray(requestQuery[rejectedFilter.name]) &&
-            requestQuery[rejectedFilter.name].indexOf(rejectedFilter.value) >=
-              0) ||
-          // Or check value
-          requestQuery[rejectedFilter.name] == rejectedFilter.value)
-      ) {
-        console.log('filterRejection found', rejectedFilter.name);
+      if (isFilterMatchQuery(rejectedFilter, requestQuery)) {
 
         // We will detect rejected filter:
         // If it doesn't accept owner
@@ -78,15 +98,13 @@ function validateRequestFilters(requestQuery, allowedResource, owner, user) {
 }
 
 function validateRequest(request, allowedResources, user) {
-  const isValidRequest = allowedResources.some(allowedResource => {
+  return allowedResources.some(allowedResource => {
     const [pattern, hasOwner] = analyzeResourceURI(allowedResource.resource);
     const regexp = new RegExp('^' + pattern + '$');
     const matches = request.path.match(regexp);
 
     // If path matches a valid pattern
     if (matches) {
-      console.log('match', regexp);
-
       const owner = matches[1] ? matches[1].toString() : undefined;
 
       return (
@@ -99,7 +117,6 @@ function validateRequest(request, allowedResources, user) {
   });
 }
 
-// Insipred by : https://github.com/crohit92/express-gateway-plugin-jwt-extractor/blob/master/policies/jwt-extractor-policy.js
 module.exports = {
   name: 'access-controller',
   policy: parameters => {
@@ -118,6 +135,7 @@ module.exports = {
         parameters.allowedResources,
         user
       );
+
       if (isValidRequest) {
         next();
       } else {
@@ -135,8 +153,8 @@ module.exports = {
           'Eval code representing the current auth user of the request',
         type: 'string'
       },
-      rejectFilters: {
-        title: 'Reject filters',
+      rejectedFilters: {
+        title: 'Rejected filters',
         description:
           'List of rejected filters which can be used into allowedResources',
         type: 'array'

@@ -52,7 +52,7 @@ policies:
               filtersRejection: # [OPTIONNAL]
                 - filter: 'Account'
                 - filter: 'FieldExist'
-            - resource: '/api/users/{owner:\d+}' # we can catch required owner using "{owner:x}", we x is a standard regex pattern
+            - resource: '/api/users/{owner:\d+}' # we can catch required owner using "{owner:x}", where x is a standard regex pattern
               methods:
                 - method: 'GET'
                 - method: 'PUT'
